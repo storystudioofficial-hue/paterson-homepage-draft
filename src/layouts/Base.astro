@@ -1,0 +1,46 @@
+---
+interface Props {
+  title: string;
+  description: string;
+  ogDescription?: string;
+}
+
+const { title, description, ogDescription = description } = Astro.props;
+
+// 공개(검색 노출)할 때 true로 바꾼다. false인 동안은 noindex가 붙는다.
+const INDEXABLE = false;
+
+const canonical = new URL(Astro.url.pathname, Astro.site).href;
+const ogImage = new URL('/og.jpg', Astro.site).href;
+---
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{title}</title>
+<meta name="description" content={description}>
+{!INDEXABLE && <meta name="robots" content="noindex, nofollow">}
+<link rel="canonical" href={canonical}>
+<link rel="sitemap" href="/sitemap-index.xml">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="패터슨 프로젝트">
+<meta property="og:locale" content="ko_KR">
+<meta property="og:url" content={canonical}>
+<meta property="og:title" content={title}>
+<meta property="og:description" content={ogDescription}>
+<meta property="og:image" content={ogImage}>
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="stylesheet" href="/style.css?v=6">
+<slot name="head" />
+</head>
+<body>
+
+<slot />
+
+</body>
+</html>

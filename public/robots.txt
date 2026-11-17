@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://paterson-project.co.kr/sitemap-index.xml
