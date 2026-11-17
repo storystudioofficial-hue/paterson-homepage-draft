@@ -8,7 +8,7 @@ interface Props {
 const { title, description, ogDescription = description } = Astro.props;
 
 // 공개(검색 노출)할 때 true로 바꾼다. false인 동안은 noindex가 붙는다.
-const INDEXABLE = false;
+const INDEXABLE = true;
 
 const canonical = new URL(Astro.url.pathname, Astro.site).href;
 const ogImage = new URL('/og.jpg', Astro.site).href;
