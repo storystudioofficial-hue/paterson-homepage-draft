@@ -33,7 +33,7 @@ body {
   word-break: keep-all;
   overflow-x: hidden;
 }
-img { display: block; max-width: 100%; }
+img { display: block; max-width: 100%; height: auto; }
 a { color: inherit; }
 :focus-visible { outline: 3px solid var(--marigold); outline-offset: 3px; }
 .wrap { max-width: 1160px; margin: 0 auto; padding: 0 24px; }

@@ -1,9 +1,49 @@
 ---
+import { Image } from 'astro:assets';
+import type { ImageMetadata } from 'astro';
 import Base from '../layouts/Base.astro';
+
+const images = import.meta.glob<{ default: ImageMetadata }>('../assets/img/*', { eager: true });
+const img = (name: string) => images[`../assets/img/${name}`].default;
 
 const title = '일러스트레이터 패프 | 브랜드 일러스트 협업·단체 그림 원데이클래스';
 const description = '일상의 색을 발견하고 가꾸는 일러스트레이터 패프(패터슨 프로젝트). 시즌 굿즈·패키지 일러스트 의뢰와 회사·기관으로 찾아가는 단체 그림 원데이클래스 문의를 받아요.';
 const ogDescription = '일상의 색을 발견하고 가꾸는 사람. 시즌 굿즈·패키지 일러스트와 회사·기관 단체 그림 원데이클래스.';
+
+// 블로그: 빌드할 때 네이버 블로그 RSS에서 최신 3편을 읽는다. 실패하면 아래 기본 글을 보여 준다.
+const FALLBACK_POSTS = [
+  { url: 'https://blog.naver.com/paterson_project/224419876677', date: '2026.09.23', title: '오늘은 무얼 그릴까? 일상 속 오브제 \'컵\' 그리기', category: '일상드로잉' },
+  { url: 'https://blog.naver.com/paterson_project/224415781347', date: '2026.09.18', title: '일러스트 색 조합, 낮과 저녁 그림으로 보는 배경색 고르기', category: '일상드로잉' },
+  { url: 'https://blog.naver.com/paterson_project/224412981523', date: '2026.09.15', title: '매년 일러스트 달력을 만드는 이유, 한 달이 지나도 그림은 남도록', category: '작업 비하인드' },
+];
+
+async function latestPosts(count = 3) {
+  const decode = (s: string) =>
+    s.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&amp;/g, '&');
+  const field = (item: string, tag: string) =>
+    decode(item.match(new RegExp(`<${tag}>(?:<!\\[CDATA\\[)?([\\s\\S]*?)(?:\\]\\]>)?</${tag}>`))?.[1].trim() ?? '');
+  try {
+    const res = await fetch('https://rss.blog.naver.com/paterson_project.xml', { signal: AbortSignal.timeout(8000) });
+    if (!res.ok) throw new Error(`RSS ${res.status}`);
+    const xml = await res.text();
+    const posts = [...xml.matchAll(/<item>([\s\S]*?)<\/item>/g)].slice(0, count).map(([, item]) => {
+      // pubDate를 한국 시간 날짜(YYYY.MM.DD)로
+      const kst = new Date(new Date(field(item, 'pubDate')).getTime() + 9 * 3600 * 1000);
+      return {
+        url: field(item, 'link').split('?')[0],
+        date: kst.toISOString().slice(0, 10).replaceAll('-', '.'),
+        title: field(item, 'title'),
+        category: field(item, 'category'),
+      };
+    });
+    if (posts.length && posts.every((p) => p.url && p.title)) return posts;
+    throw new Error('RSS에 글이 없음');
+  } catch (err) {
+    console.warn(`[blog] RSS를 읽지 못해 기본 글을 표시합니다: ${err}`);
+    return FALLBACK_POSTS;
+  }
+}
+const posts = await latestPosts();
 
 // 클래스 FAQ: 화면과 JSON-LD(FAQPage)가 이 목록 하나를 같이 쓴다
 const faqs = [
@@ -86,11 +126,11 @@ const jsonLd = {
 <header class="hero" id="top">
   <div class="wrap">
     <div class="collage" aria-label="패프의 작품 콜라주">
-      <figure class="pola c1"><span class="tape top"></span><img src="img/w-picnic.jpg" alt="잔디밭에서 강아지와 소풍하는 여성 일러스트"><figcaption>Picinic With (2026)</figcaption></figure>
-      <figure class="pola c2"><span class="tape corner t-green"></span><img src="img/w-hongkong.jpg" alt="빨간 2층 트램이 지나가는 홍콩 거리 일러스트"></figure>
-      <figure class="pola c3"><span class="tape top t-yellow" style="--w:80px"></span><img src="img/season-spring.jpg" alt="튤립 꽃밭과 나무 아래 토끼 두 마리"></figure>
-      <figure class="pola c4"><span class="tape corner-r t-blue"></span><img src="img/w-wintercoming.jpg" alt="눈 내리는 밤 파리 건물 일러스트"></figure>
-      <figure class="pola c5"><span class="tape top" style="--w:74px;--tr:6deg"></span><img src="img/w-matcha.jpg" alt="말차 메뉴 조각 그림 모음"></figure>
+      <figure class="pola c1"><span class="tape top"></span><Image src={img('w-picnic.jpg')} alt="잔디밭에서 강아지와 소풍하는 여성 일러스트" widths={[400, 800, 1200]} sizes="(max-width: 760px) 92vw, 560px" priority /><figcaption>Picinic With (2026)</figcaption></figure>
+      <figure class="pola c2"><span class="tape corner t-green"></span><Image src={img('w-hongkong.jpg')} alt="빨간 2층 트램이 지나가는 홍콩 거리 일러스트" widths={[400, 800, 1200]} sizes="(max-width: 760px) 92vw, 560px" priority /></figure>
+      <figure class="pola c3"><span class="tape top t-yellow" style="--w:80px"></span><Image src={img('season-spring.jpg')} alt="튤립 꽃밭과 나무 아래 토끼 두 마리" widths={[400, 800, 1200]} sizes="(max-width: 760px) 92vw, 560px" priority /></figure>
+      <figure class="pola c4"><span class="tape corner-r t-blue"></span><Image src={img('w-wintercoming.jpg')} alt="눈 내리는 밤 파리 건물 일러스트" widths={[400, 800, 1200]} sizes="(max-width: 760px) 92vw, 560px" priority /></figure>
+      <figure class="pola c5"><span class="tape top" style="--w:74px;--tr:6deg"></span><Image src={img('w-matcha.jpg')} alt="말차 메뉴 조각 그림 모음" widths={[400, 800, 1200]} sizes="(max-width: 760px) 92vw, 560px" priority /></figure>
       <div class="scrap c6" style="--r:6deg">
         <p style="font-family:'League Spartan',sans-serif;font-weight:700;font-size:15px;color:var(--forest)">paterson palette</p>
         <div class="dots"><i style="--c:#74b16b"></i><i style="--c:#bac972"></i><i style="--c:#b4895a"></i><i style="--c:#d0d0b1"></i><i style="--c:#ee97a3"></i></div>
@@ -145,28 +185,28 @@ const jsonLd = {
     <div class="group">
       <div class="group-head"><h3 class="display sm" style="--fill:var(--forest);--shade:var(--red)">Color Palette ; Green &amp; Red</h3></div>
       <div class="group-row" style="--n:3">
-        <figure class="pola"><span class="tape top t-green"></span><img src="img/w-jeep.jpg" alt="빨간 지프와 캠핑하는 커플, 강아지"><figcaption>Jeep, Camp, and Us (2025)<div class="dots"><i style="--c:#708c37"></i><i style="--c:#90b2ac"></i><i style="--c:#b4cfc8"></i><i style="--c:#ae0a11"></i><i style="--c:#edf4f3"></i></div></figcaption></figure>
-        <figure class="pola"><span class="tape top"></span><img src="img/w-hongkong.jpg" alt="빨간 2층 트램이 지나가는 홍콩 거리"><figcaption>Hongkong (2026)<div class="dots"><i style="--c:#2c5315"></i><i style="--c:#49752a"></i><i style="--c:#716954"></i><i style="--c:#928975"></i><i style="--c:#b0a995"></i></div></figcaption></figure>
-        <figure class="pola"><span class="tape top t-yellow"></span><img src="img/season-summer.jpg" alt="능소화 덩굴 아래 파라솔 테이블에 앉은 두 사람"><figcaption>능소화의 계절 (2025)<div class="dots"><i style="--c:#336c2a"></i><i style="--c:#759031"></i><i style="--c:#b1af8f"></i><i style="--c:#d4c9b2"></i><i style="--c:#f4f8f7"></i></div></figcaption></figure>
+        <figure class="pola"><span class="tape top t-green"></span><Image src={img('w-jeep.jpg')} alt="빨간 지프와 캠핑하는 커플, 강아지" widths={[400, 800, 1200]} sizes="(max-width: 760px) 92vw, 560px" /><figcaption>Jeep, Camp, and Us (2025)<div class="dots"><i style="--c:#708c37"></i><i style="--c:#90b2ac"></i><i style="--c:#b4cfc8"></i><i style="--c:#ae0a11"></i><i style="--c:#edf4f3"></i></div></figcaption></figure>
+        <figure class="pola"><span class="tape top"></span><Image src={img('w-hongkong.jpg')} alt="빨간 2층 트램이 지나가는 홍콩 거리" widths={[400, 800, 1200]} sizes="(max-width: 760px) 92vw, 560px" /><figcaption>Hongkong (2026)<div class="dots"><i style="--c:#2c5315"></i><i style="--c:#49752a"></i><i style="--c:#716954"></i><i style="--c:#928975"></i><i style="--c:#b0a995"></i></div></figcaption></figure>
+        <figure class="pola"><span class="tape top t-yellow"></span><Image src={img('season-summer.jpg')} alt="능소화 덩굴 아래 파라솔 테이블에 앉은 두 사람" widths={[400, 800, 1200]} sizes="(max-width: 760px) 92vw, 560px" /><figcaption>능소화의 계절 (2025)<div class="dots"><i style="--c:#336c2a"></i><i style="--c:#759031"></i><i style="--c:#b1af8f"></i><i style="--c:#d4c9b2"></i><i style="--c:#f4f8f7"></i></div></figcaption></figure>
       </div>
     </div>
 
     <div class="group">
       <div class="group-head"><h3 class="display sm" style="--fill:var(--navy);--shade:#b4895a">Color Palette ; Blue &amp; Brown</h3></div>
       <div class="group-row" style="--n:3">
-        <figure class="pola"><span class="tape top t-blue"></span><img src="img/w-seollal.jpg" alt="눈 덮인 한옥 앞 한복 차림 두 사람과 고양이"><figcaption>눈오는 설날 (2026)<div class="dots"><i style="--c:#772d10"></i><i style="--c:#908f8f"></i><i style="--c:#b4b4b2"></i><i style="--c:#d0d1d1"></i><i style="--c:#f5f7f8"></i></div></figcaption></figure>
-        <figure class="pola"><span class="tape top"></span><img src="img/season-winter.jpg" alt="눈 덮인 자작나무 숲의 새끼 사슴"><figcaption>자작나무 숲 속에 사슴 한 마리 (2025)<div class="dots"><i style="--c:#1a5773"></i><i style="--c:#3083a8"></i><i style="--c:#afb0b0"></i><i style="--c:#d1d3d2"></i><i style="--c:#f2f3f4"></i></div></figcaption></figure>
-        <figure class="pola"><span class="tape top t-yellow"></span><img src="img/w-ramen.jpg" alt="발코니에서 컵라면 먹는 커플"><figcaption>La Vie Ramen (2025)<div class="dots"><i style="--c:#323130"></i><i style="--c:#8b9193"></i><i style="--c:#aeb2b3"></i><i style="--c:#f0d3af"></i><i style="--c:#eff6f9"></i></div></figcaption></figure>
+        <figure class="pola"><span class="tape top t-blue"></span><Image src={img('w-seollal.jpg')} alt="눈 덮인 한옥 앞 한복 차림 두 사람과 고양이" widths={[400, 800, 1200]} sizes="(max-width: 760px) 92vw, 560px" /><figcaption>눈오는 설날 (2026)<div class="dots"><i style="--c:#772d10"></i><i style="--c:#908f8f"></i><i style="--c:#b4b4b2"></i><i style="--c:#d0d1d1"></i><i style="--c:#f5f7f8"></i></div></figcaption></figure>
+        <figure class="pola"><span class="tape top"></span><Image src={img('season-winter.jpg')} alt="눈 덮인 자작나무 숲의 새끼 사슴" widths={[400, 800, 1200]} sizes="(max-width: 760px) 92vw, 560px" /><figcaption>자작나무 숲 속에 사슴 한 마리 (2025)<div class="dots"><i style="--c:#1a5773"></i><i style="--c:#3083a8"></i><i style="--c:#afb0b0"></i><i style="--c:#d1d3d2"></i><i style="--c:#f2f3f4"></i></div></figcaption></figure>
+        <figure class="pola"><span class="tape top t-yellow"></span><Image src={img('w-ramen.jpg')} alt="발코니에서 컵라면 먹는 커플" widths={[400, 800, 1200]} sizes="(max-width: 760px) 92vw, 560px" /><figcaption>La Vie Ramen (2025)<div class="dots"><i style="--c:#323130"></i><i style="--c:#8b9193"></i><i style="--c:#aeb2b3"></i><i style="--c:#f0d3af"></i><i style="--c:#eff6f9"></i></div></figcaption></figure>
       </div>
     </div>
 
     <div class="group">
       <div class="group-head"><h3 class="display sm" style="--fill:#94b148;--shade:var(--pink)">Simple &amp; Round</h3><p>두터운 질감의 브러시로 담아낸 단순한 형태의 일상들</p></div>
       <div class="group-row" style="--n:4">
-        <figure class="pola"><span class="tape top t-yellow" style="--w:76px"></span><img src="img/season-spring.jpg" alt="튤립 꽃밭과 토끼 두 마리"><figcaption>Tulip Ripple (2026)<div class="dots"><i style="--c:#547231"></i><i style="--c:#91ac55"></i><i style="--c:#bcc94c"></i><i style="--c:#f4ce90"></i><i style="--c:#d2ebed"></i></div></figcaption></figure>
-        <figure class="pola"><span class="tape top" style="--w:76px"></span><img src="img/w-picnic.jpg" alt="강아지와 소풍하는 여성"><figcaption>Picinic With (2026)<div class="dots"><i style="--c:#74b16b"></i><i style="--c:#bac972"></i><i style="--c:#b4895a"></i><i style="--c:#d0d0b1"></i><i style="--c:#f0ead3"></i></div></figcaption></figure>
-        <figure class="pola"><span class="tape top t-green" style="--w:76px"></span><img src="img/w-flowershop.jpg" alt="꽃집 앞에서 물 주는 할아버지"><figcaption>패터슨 할아버지의 꽃집 (2026)<div class="dots"><i style="--c:#6ab06e"></i><i style="--c:#faa871"></i><i style="--c:#ca796b"></i><i style="--c:#cdd2d4"></i><i style="--c:#edf4f2"></i></div></figcaption></figure>
-        <figure class="pola"><span class="tape top t-blue" style="--w:76px"></span><img src="img/w-tennis.jpg" alt="숲속 테니스 코트에서 테니스 치는 사람들"><figcaption>Tennis court (2026)<div class="dots"><i style="--c:#3b6b3a"></i><i style="--c:#518d53"></i><i style="--c:#70ac6f"></i><i style="--c:#94b994"></i><i style="--c:#f4fcf8"></i></div></figcaption></figure>
+        <figure class="pola"><span class="tape top t-yellow" style="--w:76px"></span><Image src={img('season-spring.jpg')} alt="튤립 꽃밭과 토끼 두 마리" widths={[400, 800, 1200]} sizes="(max-width: 760px) 92vw, 560px" /><figcaption>Tulip Ripple (2026)<div class="dots"><i style="--c:#547231"></i><i style="--c:#91ac55"></i><i style="--c:#bcc94c"></i><i style="--c:#f4ce90"></i><i style="--c:#d2ebed"></i></div></figcaption></figure>
+        <figure class="pola"><span class="tape top" style="--w:76px"></span><Image src={img('w-picnic.jpg')} alt="강아지와 소풍하는 여성" widths={[400, 800, 1200]} sizes="(max-width: 760px) 92vw, 560px" /><figcaption>Picinic With (2026)<div class="dots"><i style="--c:#74b16b"></i><i style="--c:#bac972"></i><i style="--c:#b4895a"></i><i style="--c:#d0d0b1"></i><i style="--c:#f0ead3"></i></div></figcaption></figure>
+        <figure class="pola"><span class="tape top t-green" style="--w:76px"></span><Image src={img('w-flowershop.jpg')} alt="꽃집 앞에서 물 주는 할아버지" widths={[400, 800, 1200]} sizes="(max-width: 760px) 92vw, 560px" /><figcaption>패터슨 할아버지의 꽃집 (2026)<div class="dots"><i style="--c:#6ab06e"></i><i style="--c:#faa871"></i><i style="--c:#ca796b"></i><i style="--c:#cdd2d4"></i><i style="--c:#edf4f2"></i></div></figcaption></figure>
+        <figure class="pola"><span class="tape top t-blue" style="--w:76px"></span><Image src={img('w-tennis.jpg')} alt="숲속 테니스 코트에서 테니스 치는 사람들" widths={[400, 800, 1200]} sizes="(max-width: 760px) 92vw, 560px" /><figcaption>Tennis court (2026)<div class="dots"><i style="--c:#3b6b3a"></i><i style="--c:#518d53"></i><i style="--c:#70ac6f"></i><i style="--c:#94b994"></i><i style="--c:#f4fcf8"></i></div></figcaption></figure>
       </div>
       <p class="note-txt">Digital Illustration (Gouache, Oil paint Brush), Procreate.</p>
     </div>
@@ -174,9 +214,9 @@ const jsonLd = {
     <div class="group">
       <div class="group-head"><h3 class="display sm" style="--fill:var(--sky);--shade:#d9b48a">Oil Pastel Texture</h3><p>폭닥하고 부드러운 오일파스텔의 따뜻한 질감</p></div>
       <div class="group-row" style="--n:3">
-        <figure class="pola"><span class="tape top t-blue"></span><img src="img/w-beach.jpg" alt="바닷가에서 모래놀이하는 아이들"><figcaption>Beach Explorer (2026)<div class="dots"><i style="--c:#3092d3"></i><i style="--c:#8dcbfc"></i><i style="--c:#d9b48a"></i><i style="--c:#f4d1a9"></i><i style="--c:#f0f6fa"></i></div></figcaption></figure>
-        <figure class="pola"><span class="tape top t-yellow"></span><img src="img/w-florist.jpg" alt="꽃집 안의 플로리스트와 손님"><figcaption>The Florist's Studio (2025)<div class="dots"><i style="--c:#486e38"></i><i style="--c:#8b572d"></i><i style="--c:#a7754c"></i><i style="--c:#d6b189"></i><i style="--c:#f3edd9"></i></div></figcaption></figure>
-        <figure class="pola"><span class="tape top"></span><img src="img/w-sprouting.jpg" alt="온실과 분수, 꽃밭이 있는 수목원 풍경"><figcaption>Memories, Sprouting (2026)<div class="dots"><i style="--c:#94b148"></i><i style="--c:#d58c6c"></i><i style="--c:#f6d0b7"></i><i style="--c:#cce5d9"></i><i style="--c:#f1f6f7"></i></div></figcaption></figure>
+        <figure class="pola"><span class="tape top t-blue"></span><Image src={img('w-beach.jpg')} alt="바닷가에서 모래놀이하는 아이들" widths={[400, 800, 1200]} sizes="(max-width: 760px) 92vw, 560px" /><figcaption>Beach Explorer (2026)<div class="dots"><i style="--c:#3092d3"></i><i style="--c:#8dcbfc"></i><i style="--c:#d9b48a"></i><i style="--c:#f4d1a9"></i><i style="--c:#f0f6fa"></i></div></figcaption></figure>
+        <figure class="pola"><span class="tape top t-yellow"></span><Image src={img('w-florist.jpg')} alt="꽃집 안의 플로리스트와 손님" widths={[400, 800, 1200]} sizes="(max-width: 760px) 92vw, 560px" /><figcaption>The Florist's Studio (2025)<div class="dots"><i style="--c:#486e38"></i><i style="--c:#8b572d"></i><i style="--c:#a7754c"></i><i style="--c:#d6b189"></i><i style="--c:#f3edd9"></i></div></figcaption></figure>
+        <figure class="pola"><span class="tape top"></span><Image src={img('w-sprouting.jpg')} alt="온실과 분수, 꽃밭이 있는 수목원 풍경" widths={[400, 800, 1200]} sizes="(max-width: 760px) 92vw, 560px" /><figcaption>Memories, Sprouting (2026)<div class="dots"><i style="--c:#94b148"></i><i style="--c:#d58c6c"></i><i style="--c:#f6d0b7"></i><i style="--c:#cce5d9"></i><i style="--c:#f1f6f7"></i></div></figcaption></figure>
       </div>
       <p class="note-txt">Digital Illustration (Oil pastel Brush), Procreate.</p>
     </div>
@@ -184,16 +224,16 @@ const jsonLd = {
     <div class="group">
       <div class="group-head"><h3 class="display sm" style="--fill:var(--navy);--shade:var(--red)">Winter Mood</h3></div>
       <div class="group-row" style="--n:3">
-        <figure class="pola"><span class="tape top t-blue"></span><img src="img/w-wintercoming.jpg" alt="눈 내리는 밤 파리 건물과 창 속 사람들"><figcaption>Winter Is Coming (2025)<div class="dots"><i style="--c:#162b4e"></i><i style="--c:#34466f"></i><i style="--c:#ab8f73"></i><i style="--c:#d0b493"></i><i style="--c:#e6d8c8"></i></div></figcaption></figure>
-        <figure class="pola"><span class="tape top"></span><img src="img/w-frosty.jpg" alt="눈사람과 아이들"><figcaption>Four Kids and a Frosty Friend (2025)<div class="dots"><i style="--c:#0e340e"></i><i style="--c:#546b4c"></i><i style="--c:#74896e"></i><i style="--c:#accde5"></i><i style="--c:#eff0f1"></i></div></figcaption></figure>
-        <figure class="pola"><span class="tape top t-yellow"></span><img src="img/w-attic.jpg" alt="다락방의 커플과 잠든 강아지"><figcaption>Cozy Winter Attic (2025)<div class="dots"><i style="--c:#162b4e"></i><i style="--c:#a41c19"></i><i style="--c:#907664"></i><i style="--c:#c6b2a5"></i><i style="--c:#e6d9d1"></i></div></figcaption></figure>
+        <figure class="pola"><span class="tape top t-blue"></span><Image src={img('w-wintercoming.jpg')} alt="눈 내리는 밤 파리 건물과 창 속 사람들" widths={[400, 800, 1200]} sizes="(max-width: 760px) 92vw, 560px" /><figcaption>Winter Is Coming (2025)<div class="dots"><i style="--c:#162b4e"></i><i style="--c:#34466f"></i><i style="--c:#ab8f73"></i><i style="--c:#d0b493"></i><i style="--c:#e6d8c8"></i></div></figcaption></figure>
+        <figure class="pola"><span class="tape top"></span><Image src={img('w-frosty.jpg')} alt="눈사람과 아이들" widths={[400, 800, 1200]} sizes="(max-width: 760px) 92vw, 560px" /><figcaption>Four Kids and a Frosty Friend (2025)<div class="dots"><i style="--c:#0e340e"></i><i style="--c:#546b4c"></i><i style="--c:#74896e"></i><i style="--c:#accde5"></i><i style="--c:#eff0f1"></i></div></figcaption></figure>
+        <figure class="pola"><span class="tape top t-yellow"></span><Image src={img('w-attic.jpg')} alt="다락방의 커플과 잠든 강아지" widths={[400, 800, 1200]} sizes="(max-width: 760px) 92vw, 560px" /><figcaption>Cozy Winter Attic (2025)<div class="dots"><i style="--c:#162b4e"></i><i style="--c:#a41c19"></i><i style="--c:#907664"></i><i style="--c:#c6b2a5"></i><i style="--c:#e6d9d1"></i></div></figcaption></figure>
       </div>
     </div>
 
     <div class="group">
       <div class="group-head"><h3 class="display sm" style="--fill:#94b171;--shade:var(--pink)">Spot Illustration</h3></div>
       <div class="group-row" style="--n:3">
-        <figure class="pola" style="grid-column:1 / -1;max-width:760px;justify-self:center"><span class="tape top t-green"></span><img src="img/w-matcha.jpg" alt="말차 메뉴 12종 조각 그림" style="--ar:16/10"><figcaption>Matcha Girlie (2026)<div class="dots"><i style="--c:#719052"></i><i style="--c:#94b171"></i><i style="--c:#b0c592"></i><i style="--c:#eab5ca"></i><i style="--c:#f9f7f4"></i></div></figcaption></figure>
+        <figure class="pola" style="grid-column:1 / -1;width:100%;max-width:760px;justify-self:center"><span class="tape top t-green"></span><Image src={img('w-matcha.jpg')} alt="말차 메뉴 12종 조각 그림" style="--ar:16/10" widths={[400, 800, 1200]} sizes="(max-width: 760px) 92vw, 560px" /><figcaption>Matcha Girlie (2026)<div class="dots"><i style="--c:#719052"></i><i style="--c:#94b171"></i><i style="--c:#b0c592"></i><i style="--c:#eab5ca"></i><i style="--c:#f9f7f4"></i></div></figcaption></figure>
       </div>
     </div>
   </div>
@@ -206,10 +246,10 @@ const jsonLd = {
 
     <div class="case">
       <div class="case-img">
-        <img src="img/cw-tea.png" alt="잔꽃 패턴을 입힌 차 상자와 봉투 목업">
+        <Image src={img('cw-tea.png')} alt="잔꽃 패턴을 입힌 차 상자와 봉투 목업" widths={[400, 800, 1200]} sizes="(max-width: 760px) 92vw, 560px" />
         <div class="case-sub">
-          <img src="img/cw-tea-pattern.jpg" alt="초록 붓터치 위 흰색과 분홍 잔꽃 패턴 원화">
-          <figure><img src="img/work-lilac.jpg" alt="라일락 사이 향수 상자와 병 목업"><figcaption class="cap"><b>Lilac Breeze</b> (Concept Work)</figcaption></figure>
+          <Image src={img('cw-tea-pattern.jpg')} alt="초록 붓터치 위 흰색과 분홍 잔꽃 패턴 원화" widths={[400, 800, 1200]} sizes="(max-width: 760px) 92vw, 560px" />
+          <figure><Image src={img('work-lilac.jpg')} alt="라일락 사이 향수 상자와 병 목업" widths={[400, 800, 1200]} sizes="(max-width: 760px) 92vw, 560px" /><figcaption class="cap"><b>Lilac Breeze</b> (Concept Work)</figcaption></figure>
         </div>
       </div>
       <div>
@@ -223,8 +263,8 @@ const jsonLd = {
 
     <div class="case flip">
       <div class="case-img">
-        <img src="img/cw-bath.jpg" alt="욕조 그림 라벨을 붙인 배스솔트와 바디오일 병, 상자 목업">
-        <div class="case-sub"><img src="img/cw-bath-art.jpg" alt="설경이 보이는 창가 욕조에서 책 읽는 여성 원화" style="grid-column:span 2;aspect-ratio:16/10"></div>
+        <Image src={img('cw-bath.jpg')} alt="욕조 그림 라벨을 붙인 배스솔트와 바디오일 병, 상자 목업" widths={[400, 800, 1200]} sizes="(max-width: 760px) 92vw, 560px" />
+        <div class="case-sub"><Image src={img('cw-bath-art.jpg')} alt="설경이 보이는 창가 욕조에서 책 읽는 여성 원화" style="grid-column:span 2;aspect-ratio:16/10" widths={[400, 800, 1200]} sizes="(max-width: 760px) 92vw, 560px" /></div>
       </div>
       <div>
         <div class="pbar" aria-hidden="true"><i style="--c:#739489;--w:4"></i><i style="--c:#91b1a8;--w:4"></i><i style="--c:#72472b;--w:2"></i><i style="--c:#dac6b4;--w:3"></i><i style="--c:#f3fbfd;--w:2"></i></div>
@@ -281,9 +321,7 @@ const jsonLd = {
     <h2 class="display sm" style="--fill:var(--forest);--shade:var(--marigold)">Blog</h2>
     <p class="lead" style="margin-top:10px">그림 이야기와 작업 비하인드를 올려요.</p>
     <div class="posts">
-      <a class="post" href="https://blog.naver.com/paterson_project/224419876677"><time>2026.09.23</time><h3>오늘은 무얼 그릴까? 일상 속 오브제 '컵' 그리기</h3><span>일상드로잉</span></a>
-      <a class="post" href="https://blog.naver.com/paterson_project/224415781347"><time>2026.09.18</time><h3>일러스트 색 조합, 낮과 저녁 그림으로 보는 배경색 고르기</h3><span>일상드로잉</span></a>
-      <a class="post" href="https://blog.naver.com/paterson_project/224412981523"><time>2026.09.15</time><h3>매년 일러스트 달력을 만드는 이유, 한 달이 지나도 그림은 남도록</h3><span>작업 비하인드</span></a>
+      {posts.map((p) => <a class="post" href={p.url}><time>{p.date}</time><h3>{p.title}</h3><span>{p.category}</span></a>)}
     </div>
     <p class="cap" style="margin-top:14px"><a href="https://blog.naver.com/paterson_project">블로그에서 더 보기 →</a></p>
   </div>
@@ -304,7 +342,7 @@ const jsonLd = {
 <!-- 문의: 패프 포트폴리오 마지막 장 -->
 <section id="contact" class="contact paper-kraft torn-top">
   <div class="wrap contact-grid">
-    <figure class="pola"><span class="x-tape" aria-hidden="true"></span><img src="img/w-attic.jpg" alt="다락방의 커플과 잠든 강아지 일러스트"><figcaption>Cozy Winter Attic (2025)</figcaption></figure>
+    <figure class="pola"><span class="x-tape" aria-hidden="true"></span><Image src={img('w-attic.jpg')} alt="다락방의 커플과 잠든 강아지 일러스트" widths={[400, 800, 1200]} sizes="(max-width: 760px) 92vw, 560px" /><figcaption>Cozy Winter Attic (2025)</figcaption></figure>
     <div>
       <h2 class="display">Let's create<br>something amazing</h2>
       <p class="lead">작업 의뢰 및 협업 문의는 메일이나 카카오톡 채널을 통해 남겨주시면 최대한 빠르게 답변해 드립니다. 아래 내용을 함께 적어 주시면 첫 답장부터 구체적으로 이야기할 수 있어요.</p>
