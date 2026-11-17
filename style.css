@@ -40,8 +40,6 @@ a { color: inherit; }
 section { padding: 96px 0; position: relative; }
 
 /* 시안 표시 */
-.draft-bar { background: var(--ink); color: #eef0e6; font-size: 13px; text-align: center; padding: 7px 16px; }
-.draft-bar b { color: #ffd38a; font-weight: 600; }
 .slot { border: 2px dashed #d3b98f; border-radius: 10px; background: rgba(255, 246, 225, .8); color: #8a6420; font-size: 14px; padding: 12px 14px; line-height: 1.6; }
 .slot b { display: block; font-size: 12px; color: #a8782a; margin-bottom: 2px; }
 .check { display: inline-block; font-size: 12px; font-weight: 600; color: #a8782a; background: #fbecc9; border-radius: 6px; padding: 2px 7px; vertical-align: 2px; }
